@@ -105,7 +105,7 @@ class SparseSelfAttention(nn.Module):
         Return:
              attn_output: a dense tensor containing attention context
         """
-        assert query.dtype == torch.half, "sparse attention only supports training in fp16 currently, please file a github issue if you need fp32 support"
+        # assert query.dtype == torch.half, "sparse attention only supports training in fp16 currently, please file a github issue if you need fp32 support"
         bsz, num_heads, tgt_len, head_dim = query.size()
 
         # transpose back key if it is already transposed
