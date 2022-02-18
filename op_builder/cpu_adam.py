@@ -42,7 +42,7 @@ class CPUAdamBuilder(CUDAOpBuilder):
         CUDA_LIB64 = os.path.join(torch.utils.cpp_extension.CUDA_HOME, "lib64")
         SIMD_WIDTH = self.simd_width()
 
-        return [
+        args = [
             '-O3',
             '-std=c++14',
             f'-L{CUDA_LIB64}',
@@ -52,8 +52,12 @@ class CPUAdamBuilder(CUDAOpBuilder):
             '-Wno-reorder',
             '-march=native',
             '-fopenmp',
-            SIMD_WIDTH
         ]
+
+        if len(SIMD_WIDTH) > 0:
+            args.append(SIMD_WIDTH)
+
+        return args
 
     def nvcc_args(self):
         args = [
