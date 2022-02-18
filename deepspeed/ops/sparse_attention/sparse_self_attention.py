@@ -36,37 +36,18 @@ class SparseSelfAttention(nn.Module):
         # sparsity information
         self.sparsity_config = sparsity_config
 
-        # initialize sparse layout and register as buffer
-        master_layout = self.sparsity_config.make_layout(max_seq_length)
-        self.register_buffer("master_layout", master_layout)
-        self._need_layout_synchronization = True
-
         # mask modes
         self.key_padding_mask_mode = key_padding_mask_mode
         self.attn_mask_mode = attn_mask_mode
 
     ops = dict()
 
-    def get_layout(self, L):
-        # if layout is never synchronized across GPUs, broadcast the layout from global rank 0
-        if self._need_layout_synchronization and dist.is_initialized():
-            dist.broadcast(self.master_layout, src=0)
-            self._need_layout_synchronization = False
-
-        if (L % self.sparsity_config.block != 0):
-            raise ValueError(
-                f'Sequence Length, {L}, needs to be dividable by Block size {self.sparsity_config.block}!'
-            )
-
-        num_blocks = L // self.sparsity_config.block
-        return self.master_layout[..., :num_blocks, :num_blocks].cpu()  # layout needs to be a CPU tensor
-
     # add to cache
     def get_ops(self, H, L):
         from deepspeed.ops.sparse_attention.matmul import MatMul
         from deepspeed.ops.sparse_attention.softmax import Softmax
         if L not in SparseSelfAttention.ops:
-            sparsity_layout = self.get_layout(L)
+            sparsity_layout = self.sparsity_config.make_layout(L)
             sparse_dot_sdd_nt = MatMul(sparsity_layout,
                                        self.sparsity_config.block,
                                        'sdd',
